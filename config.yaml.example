@@ -6,3 +6,10 @@ chan_witelist:
   - '566675595082072065'
   - '566675595082072065'
   - '566675595082072065'
+
+# PostgreSQL connection info here.
+pg_connection:
+  user: 'username'
+  database: 'dbname'
+  password: 'password'
+  host: 'localhost'
