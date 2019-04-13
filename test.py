@@ -18,21 +18,12 @@ Vishnu, a multipurpose D&D bot.
 bot = commands.Bot(command_prefix='!', description=description)
 
 @bot.command()
-async def roll(ctx, *args):
+async def test(ctx, *args):
     """
-    Rolls dice. Accepts argumenuch as 1d6+4.
+    test
     """
 
-    if chan_whitelist is None: # If the whitelist is empy, run the function in any channel
-        for x in args:
-            print("!roll command recieved in channel ID " + str(ctx.channel.id))
-            await ctx.send(vroll.roll(x))
-
-
-    elif ctx.channel.id in chan_whitelist: # Checks for the channel ID in the whitelist
-        for x in args:
-            print("!roll command recieved in channel ID " + str(ctx.channel.id) + " by user " + str(ctx.author))
-            await ctx.send(vroll.roll(x))
+    await ctx.send(ctx.author)
 
 @bot.event
 async def on_ready():

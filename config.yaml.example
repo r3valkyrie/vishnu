@@ -1,3 +1,8 @@
 # Put your bot token here.
+token: 'YOURTOKENHERE'
 
-token:
+# A list of channel IDs you want whitelisted
+chan_witelist:
+  - '566675595082072065'
+  - '566675595082072065'
+  - '566675595082072065'
