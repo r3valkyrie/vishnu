@@ -38,6 +38,7 @@ def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
     (quest_tier, quest_desc, creator)
     )
     conn.commit()
+    cur.close()
     conn.close()
 
 def retrieve_quest_data(pg_connection, quest_id):
@@ -55,6 +56,8 @@ def retrieve_quest_data(pg_connection, quest_id):
 
     results = list(cur.fetchall()[0])
 
+    cur.close()
+    conn.close()
     return results
 
 def retrieve_all_quests(pg_connection):
@@ -71,4 +74,7 @@ def retrieve_all_quests(pg_connection):
     """)
 
     results = cur.fetchall()
+
+    cur.close()
+    conn.close()
     return results
