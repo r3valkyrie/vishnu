@@ -12,6 +12,7 @@ config = yaml.safe_load(open("config.yaml"))
 token = config['token']
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
+role_whitelist = config['role_whitelist']
 
 # Create PostgreSQL tables.
 pgsql.create_tables(pg_connection)
@@ -33,41 +34,157 @@ async def addquest(ctx, quest_tier, *desc):
 
     !addquest [TIER] [DESCRIPTION]
     """
-    quest_desc = " ".join(desc)
-    creator = str(ctx.author)
+    for x in role_whitelist:
+        if x in [y.id for y in ctx.message.author.roles]:
 
-    pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
+            quest_desc = " ".join(desc)
+            creator = str(ctx.author)
 
-    print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
-    await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+            pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
+
+            print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+            await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+        else:
+            await ctx.send("You don't have permission to use this command.")
 
 @bot.command()
-async def getquest(ctx, quest_id):
+async def delquest(ctx, quest_id):
     """
-    Allows any user to retrieve a quest by it's ID.
+    Allows a DM to delete a quest by their ID.
+
+    !delquest [ID]
+    """
+
+    for x in role_whitelist:
+        if x in [y.id for y in ctx.message.author.roles]:
+
+            pgsql.delete_quest(pg_connection, quest_id)
+            await ctx.send("Quest with ID " + quest_id + " deleted.")
+        else:
+            await ctx.send("You don't have permission to use this command.")
+
+@bot.command()
+async def questcomplete(ctx, quest_id):
+    """
+    Allows a DM to set a quest to 'complete' by specifying a quest ID.
+
+    !questcomplete [ID]
+    """
+
+    for x in role_whitelist:
+        if x in [y.id for y in ctx.message.author.roles]:
+            pgsql.complete_quest(pg_connection, quest_id, True)
+        else:
+            await ctx.send("You don't have permission to use this command")
+
+@bot.command()
+async def questuncomplete(ctx, quest_id):
+    """
+    Allows a DM to set a quest to 'uncomplete' by specifying a quest ID.
+
+    !questuncomplete [ID]
+    """
+
+    for x in role_whitelist:
+        if x in [y.id for y in ctx.message.author.roles]:
+            pgsql.complete_quest(pg_connection, quest_id, False)
+        else:
+            await ctx.send("You don't have permission to use this command")
+
+@bot.command()
+async def getquestbyid(ctx, quest_id):
+    """
+    Allows any user to retrieve quests by their ID.
 
     !getquest [ID]
     """
 
-    query_return = pgsql.retrieve_quest_data(pg_connection, quest_id)
-    await ctx.send("""
-    QUEST ID: {} \nTIER: {}\nDESCRIPTION {}\nCREATOR: {}
-    {}
-    """.format(query_return[0], query_return[1], query_return[2], query_return[3], '-' * 20))
+    conditional = """
+    WHERE id = {} AND completed = 'f';
+    """.format(quest_id)
+
+    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
+    print(query_return)
+
+    # Texttable tabs
+    tab = tt.Texttable()
+    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
+    tab.header(headings)
+
+    for row in query_return:
+        tab.add_row(row)
+
+    s = tab.draw()
+    await ctx.send("```" + s + "```")
+
 
 @bot.command()
-async def getallquests(ctx):
+async def getquestbytier(ctx, tier):
     """
-    Allows a user to retrieve all available quests
+    Allows any user to retrieve quests by their tier.
+
+    !getquest [TIER]
+    """
+    conditional = """
+    WHERE tier = {} AND completed = 'f';
+    """.format(tier)
+
+    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
+    print(query_return)
+
+    # Texttable tabs
+    tab = tt.Texttable()
+    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
+    tab.header(headings)
+
+    for row in query_return:
+        tab.add_row(row)
+
+    s = tab.draw()
+    await ctx.send("```" + s + "```")
+
+@bot.command()
+async def getquestbycreator(ctx, creator):
+    """
+    Allows any user to retrieve quests by their creators.
+
+    !getquest [CREATOR]
+    """
+    conditional = """
+    WHERE creator = '{}' AND completed = 'f';
+    """.format(creator)
+
+    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
+    print(query_return)
+
+    # Texttable tabs
+    tab = tt.Texttable()
+    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
+    tab.header(headings)
+
+    for row in query_return:
+        tab.add_row(row)
+
+    s = tab.draw()
+    await ctx.send("```" + s + "```")
+
+@bot.command()
+async def getallquests(ctx, *args):
+    """
+    Allows a user to retrieve all uncomplete quests.
 
     !allquests
     """
-    tab = tt.Texttable()
-    headings = ['ID', 'TIER', 'DESCRIPTION', 'CREATOR', 'COMPLETED']
-    tab.header(headings)
 
+    conditional = """
+    """
     query_return = pgsql.retrieve_all_quests(pg_connection)
     print(query_return[1][1])
+
+    # Texttable tabs
+    tab = tt.Texttable()
+    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
+    tab.header(headings)
 
     for row in query_return:
         tab.add_row(row)
@@ -102,5 +219,6 @@ async def roll(ctx, *args):
 async def on_ready():
     print("{0.user} connected to server".format(bot))
     print("Whitelisted channel IDs are: " + str(chan_whitelist))
+    print("Whitelisted role IDs are: " + str(role_whitelist))
 
 bot.run(token)
