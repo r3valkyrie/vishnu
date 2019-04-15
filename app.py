@@ -5,6 +5,7 @@
 # Discord bot that handles dice rolling and other things
 
 import discord, yaml, vroll, pgsql
+import texttable as tt
 from discord.ext import commands
 
 config = yaml.safe_load(open("config.yaml"))
@@ -61,13 +62,18 @@ async def getallquests(ctx):
 
     !allquests
     """
+    tab = tt.Texttable()
+    headings = ['ID', 'TIER', 'DESCRIPTION', 'CREATOR', 'COMPLETED']
+    tab.header(headings)
 
     query_return = pgsql.retrieve_all_quests(pg_connection)
+    print(query_return[1][1])
+
     for row in query_return:
-        await ctx.send("""
-    QUEST ID: {} \nTIER: {}\nDESCRIPTION {}\nCREATOR: {}
-        {}
-        """.format(row[0], row[1], row[2], row[3], '-' * 20))
+        tab.add_row(row)
+
+    s = tab.draw()
+    await ctx.send("```" + s + "```")
 
 
 """
