@@ -74,7 +74,7 @@ def complete_quest(pg_connection, quest_id, completion):
     cur.close()
     conn.close()
 
-def retrieve_quest_data(pg_connection, conditional):
+def retrieve_quest_data(pg_connection, query):
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -82,10 +82,7 @@ def retrieve_quest_data(pg_connection, conditional):
         host=pg_connection['host'])
     cur = conn.cursor()
 
-    cur.execute("""
-    SELECT id, tier, creator, description FROM quests
-    {};
-    """.format(conditional))
+    cur.execute(query)
 
     results = list(cur.fetchall())
 

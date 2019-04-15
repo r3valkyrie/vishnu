@@ -4,7 +4,7 @@
 #
 # Discord bot that handles dice rolling and other things
 
-import discord, yaml, vroll, pgsql
+import discord, yaml, vroll, pgsql, re
 import texttable as tt
 from discord.ext import commands
 
@@ -48,13 +48,16 @@ async def addquest(ctx, quest_tier, *desc):
 
     if whitelist_check(ctx):
         if quest_tier in quest_tier_whitelist:
-            quest_desc = " ".join(desc)
-            creator = str(ctx.author)
+            if len(desc) < 100:
+                quest_desc = " ".join(desc)
+                creator = str(ctx.author)
 
-            pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
+                pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
 
-            print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
-            await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+                print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+                await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+            else:
+                await ctx.send("Error: Your description is too long. The maximum allowed characters is 100, you had " + str(len(desc)))
         else:
             await ctx.send("Error: The quest tier you specified is invalid. The valid quest tiers are: " + ", ".join(quest_tier_whitelist) + ". You specified: " + quest_tier)
     else:
@@ -82,11 +85,10 @@ async def questcomplete(ctx, quest_id):
     !questcomplete [ID]
     """
 
-    for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]: # Check if the user is a member of a whitelisted role.
-            pgsql.complete_quest(pg_connection, quest_id, True)
-        else:
-            await ctx.send(permission_error_message)
+    if whitelist_check(ctx):
+        pgsql.complete_quest(pg_connection, quest_id, True)
+    else:
+        await ctx.send(permission_error_message)
 
 @bot.command()
 async def questuncomplete(ctx, quest_id):
@@ -96,113 +98,64 @@ async def questuncomplete(ctx, quest_id):
     !questuncomplete [ID]
     """
 
-    for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]:
-            pgsql.complete_quest(pg_connection, quest_id, False)
-        else:
-            await ctx.send("You don't have permission to use this command")
+    if whitelist_check(ctx):
+        pgsql.complete_quest(pg_connection, quest_id, False)
+    else:
+        await ctx.send("You don't have permission to use this command")
 
 @bot.command()
-async def getquestbyid(ctx, quest_id):
+async def getquest(ctx, *args):
     """
-    Allows any user to retrieve quests by their ID.
+    Allows any user to retrieve quests by specifying an ID, tier, or creator. Otherwise, returns all quests.
 
-    !getquest [ID]
+    !getquest [id=ID] [tier=TIER] [creator=CREATOR]
     """
 
-    conditional = """
-    WHERE id = {} AND completed = 'f';
-    """.format(quest_id)
+    command = " ".join(map(str, args))
 
-    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
-    print(query_return)
+    idsearch= "id=([\d])"
+    tiersearch= "tier=([^\s]+)"
+    creatorsearch= "creator=([^\s]+)"
+    idformat = ""
+    tierformat= ""
+    creatorformat= ""
 
-    # Texttable tabs
+    if re.search(idsearch, command) is not None:
+        idmatch = re.search(idsearch, command).group(1)
+        idformat = "AND id = {}".format(idmatch)
+
+    if re.search(tiersearch, command) is not None:
+        tiermatch = re.search(tiersearch, command).group(1)
+        tierformat = "AND tier = '{}'".format(tiermatch)
+    if re.search(creatorsearch, command) is not None:
+        creatormatch = re.search(creatorsearch, command).group(1)
+        creatorformat = "AND creator = '{}'".format(creatormatch)
+
+    # Craft a postgres SQL query.
+    query = """
+    SELECT id, tier, creator, description FROM quests
+    WHERE completed = 'f'
+    {}
+    {}
+    {};
+    """.format(idformat, tierformat, creatorformat)
+
+    query_return = pgsql.retrieve_quest_data(pg_connection, query) # Execute our query
+
+    # Format the results as a table
     tab = tt.Texttable()
     headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
     tab.header(headings)
 
-    for row in query_return:
-        tab.add_row(row)
-
-    s = tab.draw()
-    await ctx.send("```" + s + "```")
+    for x in range(0, len(query_return), 5):
+        for row in query_return[x:x+5]:
+            tab.add_row(row)
 
 
-@bot.command()
-async def getquestbytier(ctx, tier):
-    """
-    Allows any user to retrieve quests by their tier.
-
-    !getquest [TIER]
-    """
-    conditional = """
-    WHERE tier = {} AND completed = 'f';
-    """.format(tier)
-
-    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
-    print(query_return)
-
-    # Texttable tabs
-    tab = tt.Texttable()
-    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
-    tab.header(headings)
-
-    for row in query_return:
-        tab.add_row(row)
-
-    s = tab.draw()
-    await ctx.send("```" + s + "```")
-
-@bot.command()
-async def getquestbycreator(ctx, creator):
-    """
-    Allows any user to retrieve quests by their creators.
-
-    !getquest [CREATOR]
-    """
-    conditional = """
-    WHERE creator = '{}' AND completed = 'f';
-    """.format(creator)
-
-    query_return = pgsql.retrieve_quest_data(pg_connection, conditional)
-    print(query_return)
-
-    # Texttable tabs
-    tab = tt.Texttable()
-    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
-    tab.header(headings)
-
-    for row in query_return:
-        tab.add_row(row)
-
-    s = tab.draw()
-    await ctx.send("```" + s + "```")
-
-@bot.command()
-async def getallquests(ctx, *args):
-    """
-    Allows a user to retrieve all uncomplete quests.
-
-    !allquests
-    """
-
-    conditional = """
-    """
-    query_return = pgsql.retrieve_all_quests(pg_connection)
-    print(query_return[1][1])
-
-    # Texttable tabs
-    tab = tt.Texttable()
-    headings = ['ID', 'TIER', 'CREATOR', 'DESCRIPTION']
-    tab.header(headings)
-
-    for row in query_return:
-        tab.add_row(row)
-
-    s = tab.draw()
-    await ctx.send("```" + s + "```")
-
+        s = tab.draw()
+        print(len(query_return))
+        await ctx.send("```" + s + "```")
+        tab.reset()
 
 """
 DICE COMMANDS
