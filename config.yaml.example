@@ -3,13 +3,13 @@ token: 'YOURTOKENHERE'
 
 # A list of channel IDs you want whitelisted
 chan_witelist:
-  - '566675595082072065'
-  - '566675595082072065'
-  - '566675595082072065'
+  - 566675595082072065
+  - 566675595082072065
+  - 566675595082072065
 
 # A list of role IDs who can use the restricted commands.
 role_whitelist:
-  - '563614868708786176'
+  - 563614868708786176
 
 # PostgreSQL connection info here.
 pg_connection:
@@ -17,3 +17,13 @@ pg_connection:
   database: 'dbname'
   password: 'password'
   host: 'localhost'
+
+# Permission error message.
+permission_error_message: "You don't have permission to execute this command."
+
+# List of valid quest tiers.
+quest_tiers:
+  - "TIER-1"
+  - "TIER-2"
+  - "TIER-3"
+  - "TIER-4"
