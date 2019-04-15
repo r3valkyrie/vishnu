@@ -16,8 +16,8 @@ def create_tables(pg_connection):
 
     # Make the table if it doesn't exist.
     cur.execute("""
-    CREATE TABLE IF NOT EXISTS vishnu_quests
-    (id SERIAL PRIMARY KEY, tier INTEGER, description VARCHAR, creator VARCHAR, completed BOOLEAN);
+    CREATE TABLE IF NOT EXISTS quests
+    (id SERIAL PRIMARY KEY, tier VARCHAR, description VARCHAR, creator VARCHAR, completed BOOLEAN);
     """)
     conn.commit()
     cur.close()
@@ -34,7 +34,7 @@ def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
 
     cur.execute(
         """
-    INSERT INTO vishnu_quests (tier, description, creator, completed)
+    INSERT INTO quests (tier, description, creator, completed)
     VALUES (%s, %s, %s, False);
     """, (quest_tier, quest_desc, creator))
     conn.commit()
@@ -51,7 +51,7 @@ def delete_quest(pg_connection, quest_id):
     cur = conn.cursor()
 
     cur.execute("""
-    DELETE FROM vishnu_quests
+    DELETE FROM quests
     WHERE id = %s;""", quest_id)
     conn.commit()
     cur.close()
@@ -66,7 +66,7 @@ def complete_quest(pg_connection, quest_id, completion):
     cur = conn.cursor()
 
     cur.execute("""
-    UPDATE vishnu_quests
+    UPDATE quests
     SET completed = '%s'
     WHERE id = %s;
     """, (completion, quest_id))
@@ -83,7 +83,7 @@ def retrieve_quest_data(pg_connection, conditional):
     cur = conn.cursor()
 
     cur.execute("""
-    SELECT id, tier, creator, description FROM vishnu_quests
+    SELECT id, tier, creator, description FROM quests
     {};
     """.format(conditional))
 
@@ -103,7 +103,7 @@ def retrieve_all_quests(pg_connection):
     cur = conn.cursor()
 
     cur.execute("""
-    SELECT id, tier, creator, description FROM vishnu_quests
+    SELECT id, tier, creator, description FROM quests
     WHERE completed = 'f';
     """)
 

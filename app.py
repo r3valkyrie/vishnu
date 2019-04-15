@@ -13,6 +13,8 @@ token = config['token']
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
 role_whitelist = config['role_whitelist']
+permission_error_message = config['permission_error_message']
+quest_tier_whitelist = config['quest_tiers']
 
 # Create PostgreSQL tables.
 pgsql.create_tables(pg_connection)
@@ -23,6 +25,15 @@ Vishnu, a multipurpose D&D bot.
 
 bot = commands.Bot(command_prefix='!', description=description)
 
+"""
+Role whitelisting function
+"""
+def whitelist_check(ctx):
+    for x in role_whitelist:
+        if x in [y.id for y in ctx.message.author.roles]:
+            return True
+        else:
+            return False
 
 """
 QUEST-RELATED COMMANDS
@@ -34,9 +45,9 @@ async def addquest(ctx, quest_tier, *desc):
 
     !addquest [TIER] [DESCRIPTION]
     """
-    for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]:
 
+    if whitelist_check(ctx):
+        if quest_tier in quest_tier_whitelist:
             quest_desc = " ".join(desc)
             creator = str(ctx.author)
 
@@ -45,7 +56,9 @@ async def addquest(ctx, quest_tier, *desc):
             print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
             await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
         else:
-            await ctx.send("You don't have permission to use this command.")
+            await ctx.send("Error: The quest tier you specified is invalid. The valid quest tiers are: " + ", ".join(quest_tier_whitelist) + ". You specified: " + quest_tier)
+    else:
+        await ctx.send(permission_error_message)
 
 @bot.command()
 async def delquest(ctx, quest_id):
@@ -55,13 +68,11 @@ async def delquest(ctx, quest_id):
     !delquest [ID]
     """
 
-    for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]:
-
-            pgsql.delete_quest(pg_connection, quest_id)
-            await ctx.send("Quest with ID " + quest_id + " deleted.")
-        else:
-            await ctx.send("You don't have permission to use this command.")
+    if whitelist_check(ctx):
+        pgsql.delete_quest(pg_connection, quest_id)
+        await ctx.send("Quest with ID " + quest_id + " deleted.")
+    else:
+        await ctx.send(permission_error_message)
 
 @bot.command()
 async def questcomplete(ctx, quest_id):
@@ -72,10 +83,10 @@ async def questcomplete(ctx, quest_id):
     """
 
     for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]:
+        if x in [y.id for y in ctx.message.author.roles]: # Check if the user is a member of a whitelisted role.
             pgsql.complete_quest(pg_connection, quest_id, True)
         else:
-            await ctx.send("You don't have permission to use this command")
+            await ctx.send(permission_error_message)
 
 @bot.command()
 async def questuncomplete(ctx, quest_id):
