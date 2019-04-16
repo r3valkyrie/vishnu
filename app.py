@@ -116,23 +116,20 @@ async def getquest(ctx, *args):
     idsearch= "id=([\d])"
     tiersearch= "tier=([^\s]+)"
     creatorsearch= "creator=([^\s]+)"
-    idformat = ""
-    tierformat= ""
-    creatorformat= ""
+    value_id = None
+    value_tier = None
+    value_creator = None
 
     if re.search(idsearch, command) is not None:
-        idmatch = re.search(idsearch, command).group(1)
-        idformat = "AND id = {}".format(idmatch)
+        value_id = re.search(idsearch, command).group(1)
 
     if re.search(tiersearch, command) is not None:
-        tiermatch = re.search(tiersearch, command).group(1)
-        tierformat = "AND tier = '{}'".format(tiermatch)
+        value_tier = re.search(tiersearch, command).group(1)
 
     if re.search(creatorsearch, command) is not None:
-        creatormatch = re.search(creatorsearch, command).group(1)
-        creatorformat = "AND creator = '{}'".format(creatormatch)
+        value_creator = re.search(creatorsearch, command).group(1)
 
-    query_return = pgsql.retrieve_quest_data(pg_connection, idformat, tierformat, creatorformat)
+    query_return = pgsql.retrieve_quest_data(pg_connection, value_id, value_tier, value_creator)
 
     # Format the results as a table
     tab = tt.Texttable()

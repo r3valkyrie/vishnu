@@ -57,6 +57,7 @@ def delete_quest(pg_connection, quest_id):
     cur.close()
     conn.close()
 
+
 def complete_quest(pg_connection, quest_id, completion):
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
@@ -65,7 +66,8 @@ def complete_quest(pg_connection, quest_id, completion):
         host=pg_connection['host'])
     cur = conn.cursor()
 
-    cur.execute("""
+    cur.execute(
+        """
     UPDATE quests
     SET completed = '%s'
     WHERE id = %s;
@@ -74,7 +76,8 @@ def complete_quest(pg_connection, quest_id, completion):
     cur.close()
     conn.close()
 
-def retrieve_quest_data(pg_connection, idformat, tierformat, creatorformat):
+
+def retrieve_quest_data(pg_connection, value_id, value_tier, value_creator):
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -82,14 +85,25 @@ def retrieve_quest_data(pg_connection, idformat, tierformat, creatorformat):
         host=pg_connection['host'])
     cur = conn.cursor()
 
-    cur.execute("""
-    SELECT id, tier, creator, description FROM quests
-    WHERE completed = 'f'
-    %s
-    %s
-    %s;
-    """, (idformat, tierformat, creatorformat))
+    query = """
+    SELECT id, tier, creator, description
+    FROM quests
+    WHERE
+    completed = 'f' AND
+    (%(value_id)s is null or id = %(value_id)s) AND
+    (%(value_tier)s is null or tier = %(value_tier)s) AND
+    (%(value_creator)s is null or creator = %(value_creator)s)
+    """
+    cur.execute(query,
+                {'value_id': value_id,
+                 'value_tier': value_tier,
+                 'value_creator': value_creator}
+    )
 
+    print(value_id)
+    print(value_tier)
+    print(value_creator)
+    print(query)
     results = list(cur.fetchall())
 
     cur.close()
