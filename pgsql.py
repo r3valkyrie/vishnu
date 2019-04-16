@@ -74,24 +74,7 @@ def complete_quest(pg_connection, quest_id, completion):
     cur.close()
     conn.close()
 
-def retrieve_quest_data(pg_connection, query):
-    conn = psycopg2.connect(
-        dbname=pg_connection['database'],
-        user=pg_connection['user'],
-        password=pg_connection['password'],
-        host=pg_connection['host'])
-    cur = conn.cursor()
-
-    cur.execute(query)
-
-    results = list(cur.fetchall())
-
-    cur.close()
-    conn.close()
-    return results
-
-
-def retrieve_all_quests(pg_connection):
+def retrieve_quest_data(pg_connection, idformat, tierformat, creatorformat):
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -101,10 +84,13 @@ def retrieve_all_quests(pg_connection):
 
     cur.execute("""
     SELECT id, tier, creator, description FROM quests
-    WHERE completed = 'f';
-    """)
+    WHERE completed = 'f'
+    %s
+    %s
+    %s;
+    """, (idformat, tierformat, creatorformat))
 
-    results = cur.fetchall()
+    results = list(cur.fetchall())
 
     cur.close()
     conn.close()

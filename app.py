@@ -4,7 +4,7 @@
 #
 # Discord bot that handles dice rolling and other things
 
-import discord, yaml, vroll, pgsql, re
+import discord, yaml, vroll, pgsql, re, cgi
 import texttable as tt
 from discord.ext import commands
 
@@ -127,20 +127,12 @@ async def getquest(ctx, *args):
     if re.search(tiersearch, command) is not None:
         tiermatch = re.search(tiersearch, command).group(1)
         tierformat = "AND tier = '{}'".format(tiermatch)
+
     if re.search(creatorsearch, command) is not None:
         creatormatch = re.search(creatorsearch, command).group(1)
         creatorformat = "AND creator = '{}'".format(creatormatch)
 
-    # Craft a postgres SQL query.
-    query = """
-    SELECT id, tier, creator, description FROM quests
-    WHERE completed = 'f'
-    {}
-    {}
-    {};
-    """.format(idformat, tierformat, creatorformat)
-
-    query_return = pgsql.retrieve_quest_data(pg_connection, query) # Execute our query
+    query_return = pgsql.retrieve_quest_data(pg_connection, idformat, tierformat, creatorformat)
 
     # Format the results as a table
     tab = tt.Texttable()
@@ -151,9 +143,7 @@ async def getquest(ctx, *args):
         for row in query_return[x:x+5]:
             tab.add_row(row)
 
-
         s = tab.draw()
-        print(len(query_return))
         await ctx.send("```" + s + "```")
         tab.reset()
 
