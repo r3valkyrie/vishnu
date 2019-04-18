@@ -20,10 +20,15 @@ def create_tables(pg_connection):
     # Make the table if it doesn't exist.
     cur.execute("""
     CREATE TABLE IF NOT EXISTS quests
-    (id SERIAL PRIMARY KEY, tier VARCHAR, description VARCHAR, creator VARCHAR, completed BOOLEAN);
+    (id SERIAL PRIMARY KEY, tier VARCHAR,
+    description VARCHAR, creator VARCHAR,
+    completed BOOLEAN);
 
     CREATE TABLE IF NOT EXISTS sessions
-    (id SERIAL PRIMARY KEY, tier VARCHAR, creator VARCHAR NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL);
+    (id SERIAL PRIMARY KEY, tier VARCHAR,
+    creator VARCHAR NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL);
     """)
     conn.commit()
     cur.close()
@@ -94,7 +99,7 @@ def complete_quest(pg_connection, quest_id, completion):
 
 def retrieve_quest_data(pg_connection, value_id, value_tier, value_creator):
     """
-    Retrieves information about a quest by providing a quest ID, tier, or creator.
+    Retrieves information about a quest based on user input.
     """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],

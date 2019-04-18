@@ -9,8 +9,8 @@ import texttable as tt
 import yaml
 import vroll
 import pgsql
-import cgi
 from discord.ext import commands
+from inspect import cleandoc
 
 config = yaml.safe_load(open("config.yaml"))
 token = config['token']
@@ -32,6 +32,8 @@ bot = commands.Bot(command_prefix='!', description=description)
 """
 Role whitelisting function
 """
+
+
 def whitelist_check(ctx):
     for x in role_whitelist:
         if x in [y.id for y in ctx.message.author.roles]:
@@ -39,9 +41,7 @@ def whitelist_check(ctx):
         else:
             return False
 
-"""
-QUEST-RELATED COMMANDS
-"""
+
 @bot.command()
 async def addquest(ctx, quest_tier, *desc):
     """
@@ -56,25 +56,32 @@ async def addquest(ctx, quest_tier, *desc):
                 quest_desc = " ".join(desc)
                 creator = str(ctx.author)
 
-                pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
+                pgsql.import_quest_data(pg_connection,
+                                        quest_tier,
+                                        quest_desc,
+                                        creator)
 
-                print("Tier {} quest added by {}. Description: {}".format(quest_tier,
-                                                                          str(ctx.author),
-                                                                          quest_desc))
-                await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier,
-                                                                                   str(ctx.author),
-                                                                                   quest_desc))
+                print(cleandoc("""Tier {} quest added by {}.
+                Description: {}""".format(quest_tier,
+                                          str(ctx.author),
+                                          quest_desc)))
+                await ctx.send(cleandoc("""Tier {} quest added by {}.
+                Description: {}""".format(quest_tier,
+                                          str(ctx.author),
+                                          quest_desc)))
             else:
-                await ctx.send("""Error: Your description is too long.
-                The maximum allowed characters is 100, you had {}""".format(str(len(desc))))
+                await ctx.send(cleandoc("""Error: Your description is too long.
+                The maximum allowed characters is 100.
+                You had: {}""".format(str(len(desc)))))
         else:
-            await ctx.send("""
+            await ctx.send(cleandoc("""
             Error: The quest tier you specified is invalid.
             The valid quest tiers are: {}.
             You specified: {}.
-            """.format(", ".join(quest_tier_whitelist), quest_tier))
+            """.format(", ".join(quest_tier_whitelist), quest_tier)))
     else:
         await ctx.send(permission_error_message)
+
 
 @bot.command()
 async def delquest(ctx, quest_id):
@@ -90,6 +97,7 @@ async def delquest(ctx, quest_id):
     else:
         await ctx.send(permission_error_message)
 
+
 @bot.command()
 async def questcomplete(ctx, quest_id):
     """
@@ -102,6 +110,7 @@ async def questcomplete(ctx, quest_id):
         pgsql.complete_quest(pg_connection, quest_id, True)
     else:
         await ctx.send(permission_error_message)
+
 
 @bot.command()
 async def questuncomplete(ctx, quest_id):
@@ -116,19 +125,21 @@ async def questuncomplete(ctx, quest_id):
     else:
         await ctx.send("You don't have permission to use this command")
 
+
 @bot.command()
 async def getquest(ctx, *args):
     """
-    Allows any user to retrieve quests by specifying an ID, tier, or creator. Otherwise, returns all quests.
+    Allows any user to retrieve quests by specifying an ID, tier, or creator.
+    Otherwise, returns all quests.
 
     !getquest [id=ID] [tier=TIER] [creator=CREATOR]
     """
 
     command = " ".join(map(str, args))
 
-    idsearch= "id=([\d])"
-    tiersearch= "tier=([^\s]+)"
-    creatorsearch= "creator=([^\s]+)"
+    idsearch = r"id=([\d])"
+    tiersearch = r"tier=([^\s]+)"
+    creatorsearch = r"creator=([^\s]+)"
     value_id = None
     value_tier = None
     value_creator = None
@@ -142,7 +153,10 @@ async def getquest(ctx, *args):
     if re.search(creatorsearch, command) is not None:
         value_creator = re.search(creatorsearch, command).group(1)
 
-    query_return = pgsql.retrieve_quest_data(pg_connection, value_id, value_tier, value_creator)
+    query_return = pgsql.retrieve_quest_data(pg_connection,
+                                             value_id,
+                                             value_tier,
+                                             value_creator)
 
     # Format the results as a table
     tab = tt.Texttable()
@@ -160,6 +174,8 @@ async def getquest(ctx, *args):
 """
 DICE COMMANDS
 """
+
+
 @bot.command()
 async def roll(ctx, *args):
     """
@@ -168,16 +184,21 @@ async def roll(ctx, *args):
     !roll [NUM]d[FACES]+[NUM]
     """
 
-    if chan_whitelist is None: # If the whitelist is empy, run the roll function in any channel
+    # If the whitelist is empy, run the roll function in any channel
+    if chan_whitelist is None:
         for x in args:
-            print("!roll command recieved in channel ID " + str(ctx.channel.id))
+            print("!roll command recieved in channel ID {}"
+                  .format(ctx.channel.id))
             await ctx.send(vroll.roll(x))
 
-
-    elif ctx.channel.id in chan_whitelist: # Checks for the channel ID in the whitelist
+    # Checks for the channel ID in the whitelist
+    elif ctx.channel.id in chan_whitelist:
         for x in args:
-            print("!roll command recieved in channel ID " + str(ctx.channel.id) + " by user " + str(ctx.author))
+            print("!roll command recieved in channel ID {} by user {}"
+                  .format(str(ctx.channel.id),
+                          str(ctx.author)))
             await ctx.send(vroll.roll(x))
+
 
 @bot.event
 async def on_ready():

@@ -4,9 +4,10 @@
 #
 # Example usage: ./roll.py 3d8+4
 
-from sys import argv
 from numpy import random as rand
+from inspect import cleandoc
 import re
+
 
 def roll(roll):
     for x in roll:
@@ -22,4 +23,7 @@ def roll(roll):
 
             out = rand.randint(1, sides, rolls)
             outSum = sum(out) + additive
-            return "You rolled: " + ", ".join(str(v) for v in out) + ". Your total is " + str(outSum)
+            return cleandoc("""You rolled: {}.
+            Your total is {}""".format(
+                ", ".join(str(v) for v in out),
+                str(outSum)))
