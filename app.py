@@ -9,6 +9,7 @@ import texttable as tt
 import yaml
 import vroll
 import pgsql
+import discord
 from discord.ext import commands
 from inspect import cleandoc
 
@@ -40,6 +41,11 @@ def whitelist_check(ctx):
             return True
         else:
             return False
+
+
+"""
+Quest-managment functions
+"""
 
 
 @bot.command()
@@ -171,8 +177,51 @@ async def getquest(ctx, *args):
         await ctx.send("```" + s + "```")
         tab.reset()
 
+
 """
-DICE COMMANDS
+Group management commands
+"""
+
+
+@bot.command()
+async def addgroup(ctx, start_date, end_date, *notes):
+    """
+    Allows a DM to create a new group. Optionally add notes.
+
+    Format dates like YYYY-MM-DD
+
+    !addsession [START DATE] [END DATE] [*NOTES]
+    """
+    if whitelist_check(ctx):
+
+        creator = str(ctx.author)
+
+        verify_message, group_id = pgsql.import_group_data(
+            pg_connection,
+            creator,
+            start_date,
+            end_date,
+            " ".join(notes))
+
+        await ctx.send(cleandoc(verify_message))
+
+        new_role = "group-{}".format(str(group_id))
+
+        await ctx.guild.create_role(
+            name=new_role,
+            mentionable=True,
+            reason="Automated role creation, requested by {}"
+            .format(str(ctx.author)))
+
+        group_role = discord.utils.get(ctx.message.guild.roles, name=new_role)
+        await ctx.author.add_roles(group_role)
+
+    else:
+        await ctx.send(permission_error_message)
+
+
+"""
+Dice commands
 """
 
 

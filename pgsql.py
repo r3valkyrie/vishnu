@@ -24,11 +24,13 @@ def create_tables(pg_connection):
     description VARCHAR, creator VARCHAR,
     completed BOOLEAN);
 
-    CREATE TABLE IF NOT EXISTS sessions
-    (id SERIAL PRIMARY KEY, tier VARCHAR,
+    CREATE TABLE IF NOT EXISTS groups
+    (id SERIAL PRIMARY KEY,
     creator VARCHAR NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE NOT NULL);
+    end_date DATE NOT NULL,
+    notes VARCHAR,
+    members VARCHAR[] );
     """)
     conn.commit()
     cur.close()
@@ -54,6 +56,38 @@ def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
     conn.commit()
     cur.close()
     conn.close()
+
+
+def import_group_data(pg_connection,
+                      creator,
+                      start_date,
+                      end_date,
+                      group_notes="None"):
+    """
+    Takes input from app.py and imports it into the groups table.
+    """
+
+    conn = psycopg2.connect(
+        dbname=pg_connection['database'],
+        user=pg_connection['user'],
+        password=pg_connection['password'],
+        host=pg_connection['host'])
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO groups(creator, start_date, end_date, notes)
+    VALUES (%s, %s, %s, %s)
+    RETURNING id;
+    """, (creator, start_date, end_date, group_notes))
+
+    group_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return """
+    Created group lasting from {} to {}.
+    """.format(start_date, end_date), group_id
 
 
 def delete_quest(pg_connection, quest_id):
