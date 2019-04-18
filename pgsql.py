@@ -2,10 +2,13 @@
 PostgreSQL module for vishnu.
 """
 
-import yaml, psycopg2
+import psycopg2
 
 
 def create_tables(pg_connection):
+    """
+    Creates the tables.
+    """
 
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
@@ -18,6 +21,9 @@ def create_tables(pg_connection):
     cur.execute("""
     CREATE TABLE IF NOT EXISTS quests
     (id SERIAL PRIMARY KEY, tier VARCHAR, description VARCHAR, creator VARCHAR, completed BOOLEAN);
+
+    CREATE TABLE IF NOT EXISTS sessions
+    (id SERIAL PRIMARY KEY, tier VARCHAR, creator VARCHAR NOT NULL, start_date DATE NOT NULL, end_date DATE NOT NULL);
     """)
     conn.commit()
     cur.close()
@@ -25,6 +31,9 @@ def create_tables(pg_connection):
 
 
 def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
+    """
+    Takes input from app.py and imports it into the quests table.
+    """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -43,6 +52,9 @@ def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
 
 
 def delete_quest(pg_connection, quest_id):
+    """
+    Deletes a quest from the quests table.
+    """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -59,6 +71,9 @@ def delete_quest(pg_connection, quest_id):
 
 
 def complete_quest(pg_connection, quest_id, completion):
+    """
+    Sets a quest as "complete"
+    """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -78,6 +93,9 @@ def complete_quest(pg_connection, quest_id, completion):
 
 
 def retrieve_quest_data(pg_connection, value_id, value_tier, value_creator):
+    """
+    Retrieves information about a quest by providing a quest ID, tier, or creator.
+    """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
         user=pg_connection['user'],
@@ -94,11 +112,12 @@ def retrieve_quest_data(pg_connection, value_id, value_tier, value_creator):
     (%(value_tier)s is null or tier = %(value_tier)s) AND
     (%(value_creator)s is null or creator = %(value_creator)s)
     """
-    cur.execute(query,
-                {'value_id': value_id,
-                 'value_tier': value_tier,
-                 'value_creator': value_creator}
-    )
+    cur.execute(
+        query, {
+            'value_id': value_id,
+            'value_tier': value_tier,
+            'value_creator': value_creator
+        })
 
     print(value_id)
     print(value_tier)

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+"""
+Vishnu by Valkyrie
+Discord bot that handles dice rolling and other things
+"""
 
-# Vishnu by Valkyrie
-#
-# Discord bot that handles dice rolling and other things
-
-import discord, yaml, vroll, pgsql, re, cgi
+import re
 import texttable as tt
+import yaml
+import vroll
+import pgsql
+import cgi
 from discord.ext import commands
 
 config = yaml.safe_load(open("config.yaml"))
@@ -54,12 +58,21 @@ async def addquest(ctx, quest_tier, *desc):
 
                 pgsql.import_quest_data(pg_connection, quest_tier, quest_desc, creator)
 
-                print("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
-                await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier, str(ctx.author), quest_desc))
+                print("Tier {} quest added by {}. Description: {}".format(quest_tier,
+                                                                          str(ctx.author),
+                                                                          quest_desc))
+                await ctx.send("Tier {} quest added by {}. Description: {}".format(quest_tier,
+                                                                                   str(ctx.author),
+                                                                                   quest_desc))
             else:
-                await ctx.send("Error: Your description is too long. The maximum allowed characters is 100, you had " + str(len(desc)))
+                await ctx.send("""Error: Your description is too long.
+                The maximum allowed characters is 100, you had {}""".format(str(len(desc))))
         else:
-            await ctx.send("Error: The quest tier you specified is invalid. The valid quest tiers are: " + ", ".join(quest_tier_whitelist) + ". You specified: " + quest_tier)
+            await ctx.send("""
+            Error: The quest tier you specified is invalid.
+            The valid quest tiers are: {}.
+            You specified: {}.
+            """.format(", ".join(quest_tier_whitelist), quest_tier))
     else:
         await ctx.send(permission_error_message)
 
