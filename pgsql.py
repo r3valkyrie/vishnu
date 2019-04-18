@@ -86,8 +86,8 @@ def import_group_data(pg_connection,
     conn.close()
 
     return """
-    Created group lasting from {} to {}.
-    """.format(start_date, end_date), group_id
+    Created group with ID of {} lasting from {} to {}.
+    """.format(group_id, start_date, end_date), group_id
 
 
 def delete_quest(pg_connection, quest_id):

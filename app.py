@@ -9,7 +9,7 @@ import texttable as tt
 import yaml
 import vroll
 import pgsql
-import discord
+from discord.utils import get
 from discord.ext import commands
 from inspect import cleandoc
 
@@ -17,7 +17,7 @@ config = yaml.safe_load(open("config.yaml"))
 token = config['token']
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
-role_whitelist = config['role_whitelist']
+role_whitelist = " ".join(config['role_whitelist'])
 permission_error_message = config['permission_error_message']
 quest_tier_whitelist = config['quest_tiers']
 
@@ -30,18 +30,6 @@ Vishnu, a multipurpose D&D bot.
 
 bot = commands.Bot(command_prefix='!', description=description)
 
-"""
-Role whitelisting function
-"""
-
-
-def whitelist_check(ctx):
-    for x in role_whitelist:
-        if x in [y.id for y in ctx.message.author.roles]:
-            return True
-        else:
-            return False
-
 
 """
 Quest-managment functions
@@ -49,62 +37,60 @@ Quest-managment functions
 
 
 @bot.command()
-async def addquest(ctx, quest_tier, *desc):
+@commands.has_any_role(role_whitelist)
+async def questadd(ctx, quest_tier, *desc):
     """
     Allows a DM to create a quest.
 
-    !addquest [TIER] [DESCRIPTION]
+    !questadd [TIER] [DESCRIPTION]
     """
 
-    if whitelist_check(ctx):
-        if quest_tier in quest_tier_whitelist:
-            if len(desc) < 100:
-                quest_desc = " ".join(desc)
-                creator = str(ctx.author)
+    if quest_tier in quest_tier_whitelist:
+        if len(desc) < 100:
+            quest_desc = " ".join(desc)
+            creator = str(ctx.author)
 
-                pgsql.import_quest_data(pg_connection,
-                                        quest_tier,
-                                        quest_desc,
-                                        creator)
+            pgsql.import_quest_data(pg_connection,
+                                    quest_tier,
+                                    quest_desc,
+                                    creator)
 
-                print(cleandoc("""Tier {} quest added by {}.
-                Description: {}""".format(quest_tier,
-                                          str(ctx.author),
-                                          quest_desc)))
-                await ctx.send(cleandoc("""Tier {} quest added by {}.
-                Description: {}""".format(quest_tier,
-                                          str(ctx.author),
-                                          quest_desc)))
-            else:
-                await ctx.send(cleandoc("""Error: Your description is too long.
-                The maximum allowed characters is 100.
-                You had: {}""".format(str(len(desc)))))
+            print(cleandoc("""Tier {} quest added by {}.
+            Description: {}""".format(quest_tier,
+                                      str(ctx.author),
+                                      quest_desc)))
+
+            await ctx.send(cleandoc("""Tier {} quest added by {}.
+            Description: {}""".format(quest_tier,
+                                      str(ctx.author),
+                                      quest_desc)))
         else:
-            await ctx.send(cleandoc("""
-            Error: The quest tier you specified is invalid.
-            The valid quest tiers are: {}.
-            You specified: {}.
-            """.format(", ".join(quest_tier_whitelist), quest_tier)))
+            await ctx.send(cleandoc("""Error: Your description is too long.
+            The maximum allowed characters is 100.
+            You had: {}""".format(str(len(desc)))))
     else:
-        await ctx.send(permission_error_message)
+        await ctx.send(cleandoc("""
+        Error: The quest tier you specified is invalid.
+        The valid quest tiers are: {}.
+        You specified: {}.
+        """.format(", ".join(quest_tier_whitelist), quest_tier)))
 
 
 @bot.command()
-async def delquest(ctx, quest_id):
+@commands.has_any_role(role_whitelist)
+async def questdel(ctx, quest_id):
     """
     Allows a DM to delete a quest by their ID.
 
-    !delquest [ID]
+    !questdel [ID]
     """
 
-    if whitelist_check(ctx):
-        pgsql.delete_quest(pg_connection, quest_id)
-        await ctx.send("Quest with ID " + quest_id + " deleted.")
-    else:
-        await ctx.send(permission_error_message)
+    pgsql.delete_quest(pg_connection, quest_id)
+    await ctx.send("Quest with ID " + quest_id + " deleted.")
 
 
 @bot.command()
+@commands.has_any_role(role_whitelist)
 async def questcomplete(ctx, quest_id):
     """
     Allows a DM to set a quest to 'complete' by specifying a quest ID.
@@ -112,13 +98,11 @@ async def questcomplete(ctx, quest_id):
     !questcomplete [ID]
     """
 
-    if whitelist_check(ctx):
-        pgsql.complete_quest(pg_connection, quest_id, True)
-    else:
-        await ctx.send(permission_error_message)
+    pgsql.complete_quest(pg_connection, quest_id, True)
 
 
 @bot.command()
+@commands.has_any_role(role_whitelist)
 async def questuncomplete(ctx, quest_id):
     """
     Allows a DM to set a quest to 'uncomplete' by specifying a quest ID.
@@ -126,19 +110,16 @@ async def questuncomplete(ctx, quest_id):
     !questuncomplete [ID]
     """
 
-    if whitelist_check(ctx):
-        pgsql.complete_quest(pg_connection, quest_id, False)
-    else:
-        await ctx.send("You don't have permission to use this command")
+    pgsql.complete_quest(pg_connection, quest_id, False)
 
 
 @bot.command()
-async def getquest(ctx, *args):
+async def questget(ctx, *args):
     """
     Allows any user to retrieve quests by specifying an ID, tier, or creator.
     Otherwise, returns all quests.
 
-    !getquest [id=ID] [tier=TIER] [creator=CREATOR]
+    !questget [id=ID] [tier=TIER] [creator=CREATOR]
     """
 
     command = " ".join(map(str, args))
@@ -184,40 +165,47 @@ Group management commands
 
 
 @bot.command()
-async def addgroup(ctx, start_date, end_date, *notes):
+@commands.has_any_role(role_whitelist)
+async def groupadd(ctx, start_date, end_date, *notes):
     """
     Allows a DM to create a new group. Optionally add notes.
 
     Format dates like YYYY-MM-DD
 
-    !addsession [START DATE] [END DATE] [*NOTES]
+    !groupadd [START DATE] [END DATE] [*NOTES]
     """
-    if whitelist_check(ctx):
 
-        creator = str(ctx.author)
+    creator = str(ctx.author)
 
-        verify_message, group_id = pgsql.import_group_data(
-            pg_connection,
-            creator,
-            start_date,
-            end_date,
-            " ".join(notes))
+    verify_message, group_id = pgsql.import_group_data(
+        pg_connection,
+        creator,
+        start_date,
+        end_date,
+        " ".join(notes))
 
-        await ctx.send(cleandoc(verify_message))
+    await ctx.send(cleandoc(verify_message))
 
-        new_role = "group-{}".format(str(group_id))
+    new_role = "group-{}".format(str(group_id))
 
-        await ctx.guild.create_role(
-            name=new_role,
-            mentionable=True,
-            reason="Automated role creation, requested by {}"
-            .format(str(ctx.author)))
+    await ctx.guild.create_role(
+        name=new_role,
+        mentionable=True,
+        reason="Automated role creation, requested by {}"
+        .format(str(ctx.author)))
 
-        group_role = discord.utils.get(ctx.message.guild.roles, name=new_role)
-        await ctx.author.add_roles(group_role)
+    group_role = get(ctx.message.guild.roles, name=new_role)
+    await ctx.author.add_roles(group_role)
 
-    else:
-        await ctx.send(permission_error_message)
+
+@bot.command()
+@commands.has_any_role(role_whitelist)
+async def groupinvite(ctx, group_id, *handles):
+    """
+    Allows a group owner to invite multiple discord users to their group.
+
+    !groupinvite [GROUP ID] [DISCORD HANDLES...]
+    """
 
 
 """
@@ -253,6 +241,6 @@ async def roll(ctx, *args):
 async def on_ready():
     print("{0.user} connected to server".format(bot))
     print("Whitelisted channel IDs are: " + str(chan_whitelist))
-    print("Whitelisted role IDs are: " + str(role_whitelist))
+    print("Whitelisted roles are: " + str(role_whitelist))
 
 bot.run(token)
