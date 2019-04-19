@@ -37,6 +37,65 @@ def create_tables(pg_connection):
     conn.close()
 
 
+"""
+Group-related functions
+"""
+
+
+def import_group_invited_users(pg_connection,
+                               group_id,
+                               handles):
+    """
+    Takes a list of users from app.py and adds them
+    to the list of members in a group.
+    """
+    conn = psycopg2.connect(
+        dbname=pg_connection['database'],
+        user=pg_connection['user'],
+        password=pg_connection['password'],
+        host=pg_connection['host'])
+    cur = conn.cursor()
+    cur.execute("""
+    """)
+
+
+def import_group_data(pg_connection,
+                      creator,
+                      start_date,
+                      max_users,
+                      group_notes="None"):
+    """
+    Takes input from app.py and imports it into the groups table.
+    """
+
+    conn = psycopg2.connect(
+        dbname=pg_connection['database'],
+        user=pg_connection['user'],
+        password=pg_connection['password'],
+        host=pg_connection['host'])
+    cur = conn.cursor()
+
+    cur.execute("""
+    INSERT INTO groups(creator, start_date, end_date, notes)
+    VALUES (%s, %s, %s, %s)
+    RETURNING id;
+    """, (creator, start_date, group_notes))
+
+    group_id = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return """
+    Created group with ID of {} starting on {}.
+    """.format(group_id, start_date), group_id
+
+
+"""
+Quest-related functions
+"""
+
+
 def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
     """
     Takes input from app.py and imports it into the quests table.
@@ -56,38 +115,6 @@ def import_quest_data(pg_connection, quest_tier, quest_desc, creator):
     conn.commit()
     cur.close()
     conn.close()
-
-
-def import_group_data(pg_connection,
-                      creator,
-                      start_date,
-                      end_date,
-                      group_notes="None"):
-    """
-    Takes input from app.py and imports it into the groups table.
-    """
-
-    conn = psycopg2.connect(
-        dbname=pg_connection['database'],
-        user=pg_connection['user'],
-        password=pg_connection['password'],
-        host=pg_connection['host'])
-    cur = conn.cursor()
-
-    cur.execute("""
-    INSERT INTO groups(creator, start_date, end_date, notes)
-    VALUES (%s, %s, %s, %s)
-    RETURNING id;
-    """, (creator, start_date, end_date, group_notes))
-
-    group_id = cur.fetchone()[0]
-    conn.commit()
-    cur.close()
-    conn.close()
-
-    return """
-    Created group with ID of {} lasting from {} to {}.
-    """.format(group_id, start_date, end_date), group_id
 
 
 def delete_quest(pg_connection, quest_id):

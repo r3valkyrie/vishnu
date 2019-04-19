@@ -9,6 +9,7 @@ import texttable as tt
 import yaml
 import vroll
 import pgsql
+import discord
 from discord.utils import get
 from discord.ext import commands
 from inspect import cleandoc
@@ -18,7 +19,7 @@ token = config['token']
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
 role_whitelist = " ".join(config['role_whitelist'])
-permission_error_message = config['permission_error_message']
+group_category = config['group-category']
 quest_tier_whitelist = config['quest_tiers']
 
 # Create PostgreSQL tables.
@@ -166,13 +167,13 @@ Group management commands
 
 @bot.command()
 @commands.has_any_role(role_whitelist)
-async def groupadd(ctx, start_date, end_date, *notes):
+async def groupadd(ctx, start_date, max_users, *notes):
     """
     Allows a DM to create a new group. Optionally add notes.
 
     Format dates like YYYY-MM-DD
 
-    !groupadd [START DATE] [END DATE] [*NOTES]
+    !groupadd [START DATE] [END DATE] [MAX USERS] [*NOTES]
     """
 
     creator = str(ctx.author)
@@ -181,7 +182,6 @@ async def groupadd(ctx, start_date, end_date, *notes):
         pg_connection,
         creator,
         start_date,
-        end_date,
         " ".join(notes))
 
     await ctx.send(cleandoc(verify_message))
@@ -197,15 +197,42 @@ async def groupadd(ctx, start_date, end_date, *notes):
     group_role = get(ctx.message.guild.roles, name=new_role)
     await ctx.author.add_roles(group_role)
 
+    channel_overwrites = {
+        ctx.guild.default_role: discord.PermissionOverwrite(
+            read_messages=False),
+        ctx.guild.roles[ctx.guild.roles.index(group_role)]:
+        discord.PermissionOverwrite(
+            read_messages=True)
+    }
+
+    for category in ctx.guild.categories:
+        if category.id == group_category:
+            await ctx.guild.create_text_channel(
+                new_role + "-text",
+                category=category,
+                overwrites=channel_overwrites)
+
+            await ctx.guild.create_voice_channel(
+                new_role + "-voice",
+                category=category,
+                overwrites=channel_overwrites)
+
 
 @bot.command()
 @commands.has_any_role(role_whitelist)
-async def groupinvite(ctx, group_id, *handles):
+async def groupsignup(ctx, group_id, *members):
     """
-    Allows a group owner to invite multiple discord users to their group.
+    Allows a user to sign up for a group.
 
-    !groupinvite [GROUP ID] [DISCORD HANDLES...]
+    !groupsignup [ID]
     """
+
+
+@bot.command()
+@commands.has_any_role(role_whitelist)
+async def test(ctx):
+    await ctx.send(ctx.guild.categories)
+    await ctx.send(group_category)
 
 
 """
