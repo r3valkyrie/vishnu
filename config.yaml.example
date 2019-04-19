@@ -7,9 +7,12 @@ chan_witelist:
   - 566675595082072065
   - 566675595082072065
 
+# Group category ID. Group channels will be made here.
+group_category: 566183735704420353
+
 # A list of role IDs who can use the restricted commands.
 role_whitelist:
-  - 563614868708786176
+  - "DM"
 
 # PostgreSQL connection info here.
 pg_connection:

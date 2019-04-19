@@ -8,7 +8,7 @@ from inspect import cleandoc
 config = yaml.safe_load(open("config.yaml"))
 pg_connection = config['pg_connection']
 role_whitelist = " ".join(config['role_whitelist'])
-group_category = config['group-category']
+group_category = config['group_category']
 quest_tier_whitelist = config['quest_tiers']
 
 

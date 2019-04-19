@@ -11,7 +11,7 @@ config = yaml.safe_load(open("config.yaml"))
 role_whitelist = " ".join(config['role_whitelist'])
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
-group_category = config['group-category']
+group_category = config['group_category']
 
 
 class GroupManagement(commands.Cog, name="Group Management Commands"):
