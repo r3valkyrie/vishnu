@@ -116,10 +116,29 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             tab.reset()
 
     @commands.command()
-    @commands.has_any_role(role_whitelist)
-    async def test(ctx):
-        await ctx.send(ctx.guild.categories)
-        await ctx.send(group_category)
+    async def groupjoin(self, ctx, group_id):
+        """
+        Allows any user to join a group so long as it has users available.
+
+        !groupjoin [ID]
+        """
+        ret_groupinfo = pgsql.retrieve_group_info(
+            pg_connection,
+            group_id)
+
+        regex_check = r"(^\d+)\/(\d+)$"
+
+        matches = re.search(regex_check, ret_groupinfo[0][1])
+
+        print(matches.group(0), matches.group(1), matches.group(2))
+
+        if matches.group(1) < matches.group(2):
+            await ctx.send("{} joined group with ID of {}!".format(
+                ctx.author,
+                group_id))
+        else:
+            await ctx.send("Group is already full! ({})".format(
+                ret_groupinfo[0][1]))
 
 
 def setup(bot):

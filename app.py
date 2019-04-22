@@ -12,9 +12,10 @@ from discord.ext import commands
 
 config = yaml.safe_load(open("config.yaml"))
 token = config['token']
+role_whitelist = " ".join(config['role_whitelist'])
 chan_whitelist = config['chan_whitelist']
 pg_connection = config['pg_connection']
-group_category = config['group-category']
+group_category = config['group_category']
 
 
 # Create PostgreSQL tables.
@@ -29,6 +30,20 @@ extensions = ['cogs.groupmanagement',
               'cogs.questmanagement']
 
 bot = commands.Bot(command_prefix='!', description=description)
+
+
+@bot.command()
+@commands.has_any_role(role_whitelist)
+async def load(ctx, extension_name: str):
+    """
+    Loads an extension
+    """
+    try:
+        bot.load_extension(extension_name)
+    except (AttributeError, ImportError) as e:
+        await ctx.send("```py\n{}: {}\n```".format(type(e).__name__, str(e)))
+
+    await ctx.send("{} loaded".format(extension_name))
 
 if __name__ == '__main__':
     for extension in extensions:

@@ -42,12 +42,11 @@ Group-related functions
 """
 
 
-def import_group_invited_users(pg_connection,
-                               group_id,
-                               handles):
+def retrieve_group_info(pg_connection,
+                        group_id):
     """
-    Takes a list of users from app.py and adds them
-    to the list of members in a group.
+    Takes a given group ID and returns
+    info about said group.
     """
     conn = psycopg2.connect(
         dbname=pg_connection['database'],
@@ -55,8 +54,16 @@ def import_group_invited_users(pg_connection,
         password=pg_connection['password'],
         host=pg_connection['host'])
     cur = conn.cursor()
-    cur.execute("""
-    """)
+
+    query = """
+    SELECT id, max_users, members
+    FROM groups
+    WHERE id = %s;
+    """
+
+    cur.execute(query, group_id)
+
+    return cur.fetchall()
 
 
 def import_group_data(pg_connection,
