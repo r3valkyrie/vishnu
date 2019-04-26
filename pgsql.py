@@ -123,12 +123,6 @@ class pgSQLManagement:
         """
         Deletes a quest from the quests table.
         """
-        conn = psycopg2.connect(
-            dbname=self['database'],
-            user=self['user'],
-            password=self['password'],
-            host=self['host'])
-        self.cur = self.conn.cursor()
 
         self.cur.execute("""
         DELETE FROM quests
