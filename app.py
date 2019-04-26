@@ -5,18 +5,19 @@ Discord bot that handles dice rolling and other things
 """
 
 import yaml
-import pgsql
+import lib.pgsql as pgsql
 import traceback
 from discord.ext import commands
 
 config = yaml.safe_load(open("config.yaml"))
+guild_id = config['guild_id']
 token = config['token']
 role_whitelist = " ".join(config['role_whitelist'])
-
 
 # Create PostgreSQL tables.
 pg = pgsql.pgSQLManagement()
 pg.create_tables()
+
 
 description = """
 Vishnu, a multipurpose D&D bot.

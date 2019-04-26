@@ -1,7 +1,7 @@
 import re
 import texttable as tt
 import yaml
-import pgsql
+import lib.pgsql as pgsql
 from discord.ext import commands
 from inspect import cleandoc
 

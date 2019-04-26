@@ -23,8 +23,7 @@ class Debug(commands.Cog, name="Debug"):
         """
         Tests various things
         """
-        await ctx.send(ctx.guild.categories)
-        await ctx.send(group_category)
+        await ctx.send(ctx.author)
 
 
 def setup(bot):

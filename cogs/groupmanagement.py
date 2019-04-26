@@ -1,7 +1,7 @@
 import re
 import texttable as tt
 import yaml
-import pgsql
+import lib.pgsql as pgsql
 import discord
 from discord.ext import commands
 from discord.utils import get
@@ -11,6 +11,7 @@ config = yaml.safe_load(open("config.yaml"))
 role_whitelist = " ".join(config['role_whitelist'])
 chan_whitelist = config['chan_whitelist']
 group_category = config['group_category']
+announce_chan = config['announce_chan']
 
 pg = pgsql.pgSQLManagement()
 
@@ -64,17 +65,35 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
                 read_messages=True)
         }
 
-        for category in ctx.guild.categories:
-            if category.id == group_category:
-                await ctx.guild.create_text_channel(
-                    new_role + "-text",
-                    category=category,
-                    overwrites=channel_overwrites)
+        try:
+            for category in ctx.guild.categories:
+                if category.id == group_category:
+                    await ctx.guild.create_text_channel(
+                        new_role + "-text",
+                        category=category,
+                        overwrites=channel_overwrites)
 
-                await ctx.guild.create_voice_channel(
-                    new_role + "-voice",
-                    category=category,
-                    overwrites=channel_overwrites)
+                    await ctx.guild.create_voice_channel(
+                        new_role + "-voice",
+                        category=category,
+                        overwrites=channel_overwrites)
+        except Exception as e:
+            print(e)
+
+        finally:
+            announce_channel = get(ctx.message.guild.channels,
+                                   id=announce_chan)
+            await announce_channel.send(cleandoc("""
+            --------------------
+            {} created a session on {} with a max player count of {}.
+            Use `!groupjoin {}` to join this session.
+            Additional notes: {}
+            --------------------""".format(
+                ctx.author,
+                start_date,
+                max_users,
+                group_id,
+                " ".join(notes))))
 
     @commands.command()
     async def grouplist(self, ctx, *args):
@@ -138,6 +157,35 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         else:
             await ctx.send("Group is already full! ({})".format(
                 ret_groupinfo[0][1]))
+
+    @commands.command()
+    async def groupclose(self, ctx):
+        """
+        Allows a group owner to close a group.
+        """
+
+        text_channel = ctx.message.channel
+
+        channel_regex = r"^group-(\d+)-"
+        matches = re.search(channel_regex, str(text_channel))
+
+        group_id = matches.group(1)
+        voice_channel_name = "group-{}-voice".format(group_id)
+        role_name = "group-{}".format(group_id)
+
+        voice_channel = get(ctx.guild.voice_channels, name=voice_channel_name)
+        role = get(ctx.guild.roles, name=role_name)
+
+        query_return = pg.retrieve_group_info(group_id)
+        for row in query_return:
+            if str(ctx.author) == str(row[3]):
+                await role.delete(reason="Group has been closed.")
+                await voice_channel.delete(reason="Group has been closed.")
+                await text_channel.delete(reason="Group has been closed.")
+
+                pg.delete_group(group_id)
+            else:
+                await ctx.send("You are not the owner of this group!")
 
 
 def setup(bot):
