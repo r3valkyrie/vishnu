@@ -10,8 +10,9 @@ from inspect import cleandoc
 config = yaml.safe_load(open("config.yaml"))
 role_whitelist = " ".join(config['role_whitelist'])
 chan_whitelist = config['chan_whitelist']
-pg_connection = config['pg_connection']
 group_category = config['group_category']
+
+pg = pgsql.pgSQLManagement()
 
 
 class GroupManagement(commands.Cog, name="Group Management Commands"):
@@ -36,8 +37,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
 
         creator = str(ctx.author)
 
-        verify_message, group_id = pgsql.import_group_data(
-            pg_connection,
+        verify_message, group_id = pg.import_group_data(
             creator,
             start_date,
             max_users,
@@ -98,9 +98,9 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         if re.search(creatorsearch, command) is not None:
             value_creator = re.search(creatorsearch, command).group(1)
 
-        query_return = pgsql.retrieve_group_list(pg_connection,
-                                                 value_id,
-                                                 value_creator)
+        query_return = pg.retrieve_group_list(
+            value_id,
+            value_creator)
 
         # Format the results as a table
         tab = tt.Texttable()
@@ -122,8 +122,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
 
         !groupjoin [ID]
         """
-        ret_groupinfo = pgsql.retrieve_group_info(
-            pg_connection,
+        ret_groupinfo = pg.retrieve_group_info(
             group_id)
 
         regex_check = r"(^\d+)\/(\d+)$"

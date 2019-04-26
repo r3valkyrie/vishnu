@@ -6,20 +6,17 @@ Discord bot that handles dice rolling and other things
 
 import yaml
 import pgsql
-import sys
 import traceback
 from discord.ext import commands
 
 config = yaml.safe_load(open("config.yaml"))
 token = config['token']
 role_whitelist = " ".join(config['role_whitelist'])
-chan_whitelist = config['chan_whitelist']
-pg_connection = config['pg_connection']
-group_category = config['group_category']
 
 
 # Create PostgreSQL tables.
-pgsql.create_tables(pg_connection)
+pg = pgsql.pgSQLManagement()
+pg.create_tables()
 
 description = """
 Vishnu, a multipurpose D&D bot.
@@ -50,7 +47,7 @@ if __name__ == '__main__':
         try:
             bot.load_extension(extension)
         except Exception as e:
-            print(f'Failed to load extension {extension}.', file=sys.stderr)
+            print(e)
             traceback.print_exc()
 
 

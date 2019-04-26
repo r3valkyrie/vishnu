@@ -6,10 +6,10 @@ from discord.ext import commands
 from inspect import cleandoc
 
 config = yaml.safe_load(open("config.yaml"))
-pg_connection = config['pg_connection']
 role_whitelist = " ".join(config['role_whitelist'])
-group_category = config['group_category']
 quest_tier_whitelist = config['quest_tiers']
+
+pg = pgsql.pgSQLManagement()
 
 
 class QuestManagement(commands.Cog, name="Quest Management Commands"):
@@ -35,7 +35,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
                 quest_desc = " ".join(desc)
                 creator = str(ctx.author)
 
-                pgsql.import_quest_data(pg_connection,
+                pg.import_quest_data(
                                         quest_tier,
                                         quest_desc,
                                         creator)
@@ -74,7 +74,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questdel [ID]
         """
 
-        pgsql.delete_quest(pg_connection, quest_id)
+        pg.delete_quest(quest_id)
         await ctx.send("Quest with ID " + quest_id + " deleted.")
 
     @commands.command()
@@ -86,7 +86,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questcomplete [ID]
         """
 
-        pgsql.complete_quest(pg_connection, quest_id, True)
+        pg.complete_quest(quest_id, True)
 
     @commands.command()
     @commands.has_any_role(role_whitelist)
@@ -97,7 +97,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questuncomplete [ID]
         """
 
-        pgsql.complete_quest(pg_connection, quest_id, False)
+        pg.complete_quest(quest_id, False)
 
     @commands.command()
     async def questlist(self, ctx, *args):
@@ -126,8 +126,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         if re.search(creatorsearch, command) is not None:
             value_creator = re.search(creatorsearch, command).group(1)
 
-        query_return = pgsql.retrieve_quest_data(
-            pg_connection,
+        query_return = pg.retrieve_quest_data(
             value_id,
             value_tier,
             value_creator)
