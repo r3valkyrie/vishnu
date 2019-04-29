@@ -3,12 +3,15 @@ token: 'YOURTOKENHERE'
 
 # A list of channel IDs you want whitelisted
 chan_witelist:
-  - 566675595082072065
-  - 566675595082072065
-  - 566675595082072065
+  - 566675595382072065
+  - 566675795062072265
+  - 566635585087074065
 
 # Group category ID. Group channels will be made here.
-group_category: 566183735704420353
+group_category: 566283735702421353
+
+# Channel ID where session announcements are sent.
+announce_chan: 566283715702421353
 
 # A list of role IDs who can use the restricted commands.
 role_whitelist:
@@ -20,9 +23,6 @@ pg_connection:
   database: 'dbname'
   password: 'password'
   host: 'localhost'
-
-# Permission error message.
-permission_error_message: "You don't have permission to execute this command."
 
 # List of valid quest tiers.
 quest_tiers:
