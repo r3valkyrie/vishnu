@@ -15,7 +15,9 @@ token = config['token']
 role_whitelist = " ".join(config['role_whitelist'])
 
 description = """
-Vishnu, a multipurpose D&D bot.
+Vishnu, a multipurpose D&D bot. Having issues? Create a bug report here:
+
+https://github.com/r3valkyrie/vishnu/issues/new?assignees=&labels=&template=bug_report.md&title=
 """
 
 
