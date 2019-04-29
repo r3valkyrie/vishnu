@@ -205,6 +205,11 @@ class pgSQLManagement:
 
         await self.connect()
 
+        if value_id is not None:
+            id = int(value_id)
+        else:
+            id = None
+
         results = list(await self.conn.fetch("""
         SELECT id, tier, creator, description
         FROM quests
@@ -213,6 +218,6 @@ class pgSQLManagement:
         ($1::integer is null or id = $1::integer) AND
         ($2::varchar is null or tier = $2::varchar) AND
         ($3::varchar is null or creator = $3::varchar)
-        """, value_id, value_tier, value_creator))
+        """, id, value_tier, value_creator))
 
         return results
