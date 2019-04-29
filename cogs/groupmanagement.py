@@ -1,7 +1,7 @@
 import re
 import texttable as tt
 import yaml
-import lib.pgsql as pgsql
+import modules.pgsql as pgsql
 import discord
 from discord.ext import commands
 from discord.utils import get

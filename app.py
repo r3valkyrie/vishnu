@@ -5,7 +5,7 @@ Discord bot that handles dice rolling and other things
 """
 
 import yaml
-import lib.pgsql as pgsql
+import modules.pgsql as pgsql
 import traceback
 from discord.ext import commands
 
