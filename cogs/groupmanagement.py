@@ -9,7 +9,6 @@ from inspect import cleandoc
 
 config = yaml.safe_load(open("config.yaml"))
 role_whitelist = " ".join(config['role_whitelist'])
-chan_whitelist = config['chan_whitelist']
 group_category = config['group_category']
 announce_chan = config['announce_chan']
 
@@ -91,6 +90,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             announce_channel = get(ctx.message.guild.channels,
                                    id=announce_chan)
             await announce_channel.send(cleandoc("""
+            @here
             --------------------
             {} created a session on {} with a max player count of {}.
             Use `!groupjoin {}` to join this session.
