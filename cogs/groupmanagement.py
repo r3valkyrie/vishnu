@@ -38,7 +38,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
 
         creator = str(ctx.author)
 
-        verify_message, group_id = pg.import_group_data(
+        verify_message, group_id = await pg.import_group_data(
             creator,
             start_date,
             max_users,
@@ -54,8 +54,15 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             reason="Automated role creation, requested by {}"
             .format(str(ctx.author)))
 
-        group_role = get(ctx.message.guild.roles, name=new_role)
-        await ctx.author.add_roles(group_role)
+        group_role = None
+
+        while group_role is None:
+            try:
+                group_role = get(ctx.message.guild.roles, name=new_role)
+            except Exception:
+                pass
+
+            await ctx.author.add_roles(group_role)
 
         channel_overwrites = {
             ctx.guild.default_role: discord.PermissionOverwrite(
@@ -143,17 +150,38 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         """
         ret_groupinfo = pg.retrieve_group_info(
             group_id)
+        print(ret_groupinfo)
+
+        session_id = ret_groupinfo[0][0]
+        max_players = ret_groupinfo[0][1]
+        session_members = ret_groupinfo[0][2]
+        session_owner = ret_groupinfo[0][3]
 
         regex_check = r"(^\d+)\/(\d+)$"
 
-        matches = re.search(regex_check, ret_groupinfo[0][1])
+        matches = re.search(regex_check, max_players)
 
         print(matches.group(0), matches.group(1), matches.group(2))
+        print(session_members)
 
-        if matches.group(1) < matches.group(2):
-            await ctx.send("{} joined group with ID of {}!".format(
-                ctx.author,
-                group_id))
+        slots_taken = int(matches.group(1))
+        slots_max = int(matches.group(2))
+
+        if slots_taken < slots_max:
+            if session_members is None or str(ctx.author) not in session_members:
+                slots_taken += 1
+                new_max = "{}/{}".format(slots_taken, slots_max)
+                pg.join_group(group_id, str(ctx.author), new_max)
+
+                role = get(ctx.guild.roles, name="group-{}".format(group_id))
+                await ctx.author.add_roles(role)
+
+                await ctx.send("{} joined group with ID of {}!".format(
+                    ctx.author,
+                    group_id))
+            else:
+                await ctx.send("{} is already a member of this group!".format(
+                    str(ctx.author)))
         else:
             await ctx.send("Group is already full! ({})".format(
                 ret_groupinfo[0][1]))
