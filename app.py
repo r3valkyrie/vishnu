@@ -14,11 +14,6 @@ guild_id = config['guild_id']
 token = config['token']
 role_whitelist = " ".join(config['role_whitelist'])
 
-# Create PostgreSQL tables.
-pg = pgsql.pgSQLManagement()
-pg.create_tables()
-
-
 description = """
 Vishnu, a multipurpose D&D bot.
 """
@@ -54,6 +49,10 @@ if __name__ == '__main__':
 
 @bot.event
 async def on_ready():
+    # Create PostgreSQL tables.
+    pg = pgsql.pgSQLManagement()
+    await pg.create_tables()
+
     print(f"Logged in as {bot.user.name}")
 
 bot.run(token, bot=True, reconnect=True)

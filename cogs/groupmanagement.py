@@ -124,7 +124,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         if re.search(creatorsearch, command) is not None:
             value_creator = re.search(creatorsearch, command).group(1)
 
-        query_return = pg.retrieve_group_list(
+        query_return = await pg.retrieve_group_list(
             value_id,
             value_creator)
 
@@ -148,14 +148,14 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
 
         !groupjoin [ID]
         """
-        ret_groupinfo = pg.retrieve_group_info(
+        ret_groupinfo = await pg.retrieve_group_info(
             group_id)
         print(ret_groupinfo)
 
-        session_id = ret_groupinfo[0][0]
+        # session_id = ret_groupinfo[0][0]
         max_players = ret_groupinfo[0][1]
         session_members = ret_groupinfo[0][2]
-        session_owner = ret_groupinfo[0][3]
+        # session_owner = ret_groupinfo[0][3]
 
         regex_check = r"(^\d+)\/(\d+)$"
 
@@ -171,7 +171,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             if session_members is None or str(ctx.author) not in session_members:
                 slots_taken += 1
                 new_max = "{}/{}".format(slots_taken, slots_max)
-                pg.join_group(group_id, str(ctx.author), new_max)
+                await pg.join_group(group_id, str(ctx.author), new_max)
 
                 role = get(ctx.guild.roles, name="group-{}".format(group_id))
                 await ctx.author.add_roles(role)
@@ -190,6 +190,8 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
     async def groupclose(self, ctx):
         """
         Allows a group owner to close a group.
+
+        Run this in the group's channel.
         """
 
         text_channel = ctx.message.channel
@@ -204,14 +206,14 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         voice_channel = get(ctx.guild.voice_channels, name=voice_channel_name)
         role = get(ctx.guild.roles, name=role_name)
 
-        query_return = pg.retrieve_group_info(group_id)
+        query_return = await pg.retrieve_group_info(group_id)
         for row in query_return:
             if str(ctx.author) == str(row[3]):
                 await role.delete(reason="Group has been closed.")
                 await voice_channel.delete(reason="Group has been closed.")
                 await text_channel.delete(reason="Group has been closed.")
 
-                pg.delete_group(group_id)
+                await pg.delete_group(group_id)
             else:
                 await ctx.send("You are not the owner of this group!")
 

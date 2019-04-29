@@ -35,7 +35,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
                 quest_desc = " ".join(desc)
                 creator = str(ctx.author)
 
-                pg.import_quest_data(
+                await pg.import_quest_data(
                                         quest_tier,
                                         quest_desc,
                                         creator)
@@ -74,7 +74,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questdel [ID]
         """
 
-        pg.delete_quest(quest_id)
+        await pg.delete_quest(quest_id)
         await ctx.send("Quest with ID " + quest_id + " deleted.")
 
     @commands.command()
@@ -86,7 +86,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questcomplete [ID]
         """
 
-        pg.complete_quest(quest_id, True)
+        await pg.complete_quest(quest_id, True)
 
     @commands.command()
     @commands.has_any_role(role_whitelist)
@@ -97,7 +97,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questuncomplete [ID]
         """
 
-        pg.complete_quest(quest_id, False)
+        await pg.complete_quest(quest_id, False)
 
     @commands.command()
     async def questlist(self, ctx, *args):
@@ -126,7 +126,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         if re.search(creatorsearch, command) is not None:
             value_creator = re.search(creatorsearch, command).group(1)
 
-        query_return = pg.retrieve_quest_data(
+        query_return = await pg.retrieve_quest_data(
             value_id,
             value_tier,
             value_creator)
