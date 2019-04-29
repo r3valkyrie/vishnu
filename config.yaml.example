@@ -1,6 +1,9 @@
 # Put your bot token here.
 token: 'YOURTOKENHERE'
 
+# Guild ID
+guild_id: 561524772778742037
+
 # A list of channel IDs you want whitelisted
 chan_witelist:
   - 566675595382072065
