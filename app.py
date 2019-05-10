@@ -53,7 +53,8 @@ if __name__ == '__main__':
 async def on_ready():
     # Create PostgreSQL tables.
     pg = pgsql.pgSQLManagement()
-    await pg.create_tables()
+    async for guild in bot.fetch_guilds():
+        await pg.create_tables(guild.id)
 
     print(f"Logged in as {bot.user.name}")
 
