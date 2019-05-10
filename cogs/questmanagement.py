@@ -35,10 +35,10 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
                 quest_desc = " ".join(desc)
                 creator = str(ctx.author)
 
-                await pg.import_quest_data(
-                                        quest_tier,
-                                        quest_desc,
-                                        creator)
+                await pg.import_quest_data(ctx.guild.id,
+                                           quest_tier,
+                                           quest_desc,
+                                           creator)
 
                 print(cleandoc("""Tier {} quest added by {}.
                 Description: {}""".format(
@@ -74,7 +74,8 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questdel [ID]
         """
 
-        await pg.delete_quest(quest_id)
+        await pg.delete_quest(ctx.guild.id,
+                              quest_id)
         await ctx.send("Quest with ID " + quest_id + " deleted.")
 
     @commands.command()
@@ -86,18 +87,28 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
         !questcomplete [ID]
         """
 
-        await pg.complete_quest(quest_id, True)
+        await pg.complete_quest(ctx.guild.id,
+                                quest_id,
+                                True)
+        await ctx.send("""
+        {} set quest with ID of {} to COMPLETE!
+        """.format(ctx.author, quest_id))
 
     @commands.command()
     @commands.has_any_role(role_whitelist)
-    async def questuncomplete(self, ctx, quest_id):
+    async def questincomplete(self, ctx, quest_id):
         """
         Allows a DM to set a quest to 'uncomplete' by specifying a quest ID.
 
         !questuncomplete [ID]
         """
 
-        await pg.complete_quest(quest_id, False)
+        await pg.complete_quest(ctx.guild.id,
+                                quest_id,
+                                False)
+        await ctx.send("""
+        {} set quest with ID of {} to UNCOMPLETE!
+        """.format(ctx.author, quest_id))
 
     @commands.command()
     async def questlist(self, ctx, *args):
@@ -127,6 +138,7 @@ class QuestManagement(commands.Cog, name="Quest Management Commands"):
             value_creator = re.search(creatorsearch, command).group(1)
 
         query_return = await pg.retrieve_quest_data(
+            ctx.guild.id,
             value_id,
             value_tier,
             value_creator)
