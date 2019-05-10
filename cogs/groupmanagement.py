@@ -37,13 +37,16 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
 
         creator = str(ctx.author)
 
-        verify_message, group_id = await pg.import_group_data(
+        group_id = await pg.import_group_data(
+            ctx.guild.id,
             creator,
             start_date,
             max_users,
             " ".join(notes))
 
-        await ctx.send(cleandoc(verify_message))
+        await ctx.send(cleandoc("""
+        Created group with ID of {} starting on {}
+        """.format(group_id, start_date)))
 
         new_role = "group-{}".format(str(group_id))
 
@@ -53,15 +56,9 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             reason="Automated role creation, requested by {}"
             .format(str(ctx.author)))
 
-        group_role = None
+        group_role = get(ctx.message.guild.roles, name=new_role)
 
-        while group_role is None:
-            try:
-                group_role = get(ctx.message.guild.roles, name=new_role)
-            except Exception:
-                pass
-
-            await ctx.author.add_roles(group_role)
+        await ctx.author.add_roles(group_role)
 
         channel_overwrites = {
             ctx.guild.default_role: discord.PermissionOverwrite(
@@ -90,7 +87,6 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             announce_channel = get(ctx.message.guild.channels,
                                    id=announce_chan)
             await announce_channel.send(cleandoc("""
-            @here
             --------------------
             {} created a session on {} with a max player count of {}.
             Use `!groupjoin {}` to join this session.
@@ -125,6 +121,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             value_creator = re.search(creatorsearch, command).group(1)
 
         query_return = await pg.retrieve_group_list(
+            ctx.guild.id,
             value_id,
             value_creator)
 
@@ -149,7 +146,9 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         !groupjoin [ID]
         """
         ret_groupinfo = await pg.retrieve_group_info(
+            ctx.guild.id,
             group_id)
+
         print(ret_groupinfo)
 
         # session_id = ret_groupinfo[0][0]
@@ -171,7 +170,10 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             if session_members is None or str(ctx.author) not in session_members:
                 slots_taken += 1
                 new_max = "{}/{}".format(slots_taken, slots_max)
-                await pg.join_group(group_id, str(ctx.author), new_max)
+                await pg.join_group(ctx.guild.id,
+                                    group_id,
+                                    str(ctx.author),
+                                    new_max)
 
                 role = get(ctx.guild.roles, name="group-{}".format(group_id))
                 await ctx.author.add_roles(role)
@@ -206,14 +208,19 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         voice_channel = get(ctx.guild.voice_channels, name=voice_channel_name)
         role = get(ctx.guild.roles, name=role_name)
 
-        query_return = await pg.retrieve_group_info(group_id)
+        query_return = await pg.retrieve_group_info(
+            ctx.guild.id,
+            group_id)
+
         for row in query_return:
             if str(ctx.author) == str(row[3]):
                 await role.delete(reason="Group has been closed.")
                 await voice_channel.delete(reason="Group has been closed.")
                 await text_channel.delete(reason="Group has been closed.")
 
-                await pg.delete_group(group_id)
+                await pg.delete_group(
+                    ctx.guild.id,
+                    group_id)
             else:
                 await ctx.send("You are not the owner of this group!")
 
