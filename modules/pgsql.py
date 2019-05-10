@@ -25,7 +25,7 @@ class pgSQLManagement:
         self.tr = self.conn.transaction()
         await self.tr.start()
 
-    async def create_tables(self):
+    async def create_tables(self, guild_id):
         """
         Creates the tables.
         """
@@ -35,23 +35,37 @@ class pgSQLManagement:
         # Make the table if it doesn't exist.
 
         await self.conn.execute("""
-        CREATE TABLE IF NOT EXISTS quests
+        CREATE TABLE IF NOT EXISTS "{0}_quests"
         (id SERIAL PRIMARY KEY, tier VARCHAR,
         description VARCHAR, creator VARCHAR,
         completed BOOLEAN);
 
-        CREATE TABLE IF NOT EXISTS groups
+        CREATE TABLE IF NOT EXISTS "{0}_groups"
         (id SERIAL PRIMARY KEY,
         creator VARCHAR NOT NULL,
         start_date DATE NOT NULL,
         max_users VARCHAR NOT NULL,
         notes VARCHAR,
         members VARCHAR[] );
-        """)
+
+        CREATE TABLE IF NOT EXISTS "{0}_config"
+        (option VARCHAR,
+        value VARCHAR);
+
+        INSERT INTO "{0}_config"
+        (option)
+        VALUES
+        ('chan_whitelist'),
+        ('group_category'),
+        ('announce_chan'),
+        ('role_whitelist'),
+        ('quest_tiers');
+        """.format(guild_id))
 
         await self.tr.commit()
 
     async def retrieve_group_info(self,
+                                  guild_id,
                                   group_id):
         """
         Takes a given group ID and returns
@@ -62,12 +76,13 @@ class pgSQLManagement:
 
         group = list(await self.conn.fetch("""
         SELECT id, max_users, members, creator
-        FROM groups
-        WHERE id = $1""", int(group_id)))
+        FROM "{}_groups"
+        WHERE id = $1""".format(guild_id), int(group_id)))
 
         return group
 
     async def join_group(self,
+                         guild_id,
                          group_id,
                          author,
                          new_max):
@@ -78,21 +93,22 @@ class pgSQLManagement:
         await self.connect()
 
         await self.conn.execute("""
-        UPDATE groups
+        UPDATE "{}_groups"
         SET members =
         array_append(members, $1)
         WHERE id = $2;
-        """, author, int(group_id))
+        """.format(guild_id), author, int(group_id))
 
         await self.conn.execute("""
-        UPDATE groups
+        UPDATE "{}_groups"
         SET max_users = $1
         WHERE id = $2;
-        """, new_max, int(group_id))
+        """.format(guild_id), new_max, int(group_id))
 
         await self.tr.commit()
 
     async def import_group_data(self,
+                                guild_id,
                                 creator,
                                 start_date,
                                 max_users,
@@ -106,19 +122,32 @@ class pgSQLManagement:
         # Convert date string to datetime
         date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
 
-        group_id = await self.conn.fetchval("""
-        INSERT INTO groups(creator, start_date, max_users, notes)
-        VALUES ($1::varchar, $2::date, $3::varchar, $4::varchar)
-        RETURNING id;
-        """, creator, date, "0/{}".format(max_users), group_notes)
+        await self.conn.execute("""
+        INSERT INTO "{0}_groups"(creator, start_date, max_users, notes)
+        VALUES ($1::varchar, $2::date, $3::varchar, $4::varchar);
+        """.format(guild_id),
+                                creator,
+                                date, "0/{}".format(max_users),
+                                group_notes)
 
         await self.tr.commit()
 
-        return """
-        Created group with ID of {} starting on {}.
-        """.format(group_id, start_date), group_id
+        group_id = None
+
+        while group_id is None:
+            try:
+                group_id = await self.conn.fetch("""
+                SELECT max(id)
+                FROM "{0}_groups";
+                """.format(guild_id))
+
+            except:
+                pass
+
+        return group_id[0][0]
 
     async def retrieve_group_list(self,
+                                  guild_id,
                                   value_id,
                                   value_creator):
         """
@@ -130,15 +159,16 @@ class pgSQLManagement:
 
         results = list(await self.conn.fetch("""
         SELECT id, creator, start_date, max_users, notes
-        FROM groups
+        FROM "{0}_groups"
         WHERE
         ($1::integer is null or id = $1::integer) AND
         ($2::varchar is null or creator = $2::varchar);
-        """, value_id, value_creator))
+        """.format(guild_id), value_id, value_creator))
 
         return results
 
     async def delete_group(self,
+                           guild_id,
                            group_id):
         """
         Allows a DM to delete a group from
@@ -148,13 +178,17 @@ class pgSQLManagement:
         await self.connect()
 
         await self.conn.execute("""
-        DELETE FROM groups
+        DELETE FROM "{}_groups"
         WHERE id = $1;
-        """, int(group_id))
+        """.format(guild_id), int(group_id))
 
         await self.tr.commit()
 
-    async def import_quest_data(self, quest_tier, quest_desc, creator):
+    async def import_quest_data(self,
+                                guild_id,
+                                quest_tier,
+                                quest_desc,
+                                creator):
         """
         Takes input from app.py and imports it into the quests table.
         """
@@ -163,13 +197,15 @@ class pgSQLManagement:
 
         await self.conn.execute(
             """
-        INSERT INTO quests (tier, description, creator, completed)
+        INSERT INTO "{}_quests" (tier, description, creator, completed)
         VALUES ($1, $2, $3, False);
-        """, quest_tier, quest_desc, creator)
+        """.format(guild_id), quest_tier, quest_desc, creator)
 
         await self.tr.commit()
 
-    async def delete_quest(self, quest_id):
+    async def delete_quest(self,
+                           guild_id,
+                           quest_id):
         """
         Deletes a quest from the quests table.
         """
@@ -177,12 +213,15 @@ class pgSQLManagement:
         await self.connect()
 
         await self.conn.execute("""
-        DELETE FROM quests
-        WHERE id = $1;""", int(quest_id))
+        DELETE FROM "{}_quests"
+        WHERE id = $1;""".format(guild_id), int(quest_id))
 
         await self.tr.commit()
 
-    async def complete_quest(self, quest_id, completion):
+    async def complete_quest(self,
+                             guild_id,
+                             quest_id,
+                             completion):
         """
         Sets a quest as "complete"
         """
@@ -191,14 +230,18 @@ class pgSQLManagement:
 
         await self.conn.execute(
             """
-        UPDATE quests
+        UPDATE "{}_quests"
         SET completed = $1::bool
         WHERE id = $2::integer;
-        """, completion, int(quest_id))
+        """.format(guild_id), completion, int(quest_id))
 
         await self.tr.commit()
 
-    async def retrieve_quest_data(self, value_id, value_tier, value_creator):
+    async def retrieve_quest_data(self,
+                                  guild_id,
+                                  value_id,
+                                  value_tier,
+                                  value_creator):
         """
         Retrieves information about a quest based on user input.
         """
@@ -212,12 +255,12 @@ class pgSQLManagement:
 
         results = list(await self.conn.fetch("""
         SELECT id, tier, creator, description
-        FROM quests
+        FROM "{}_quests"
         WHERE
         completed = 'f' AND
         ($1::integer is null or id = $1::integer) AND
         ($2::varchar is null or tier = $2::varchar) AND
         ($3::varchar is null or creator = $3::varchar)
-        """, id, value_tier, value_creator))
+        """.format(guild_id), id, value_tier, value_creator))
 
         return results
