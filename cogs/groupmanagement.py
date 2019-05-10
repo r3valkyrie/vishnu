@@ -87,6 +87,7 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             announce_channel = get(ctx.message.guild.channels,
                                    id=announce_chan)
             await announce_channel.send(cleandoc("""
+            @here
             --------------------
             {} created a session on {} with a max player count of {}.
             Use `!groupjoin {}` to join this session.
