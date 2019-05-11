@@ -3,6 +3,7 @@ import texttable as tt
 import yaml
 import modules.pgsql as pgsql
 import discord
+from discord import Embed
 from discord.ext import commands
 from discord.utils import get
 from inspect import cleandoc
@@ -82,19 +83,18 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             print(e)
 
         finally:
+
+            embed = Embed(title="New Group!",
+                          description="A new group has been created! React to this message to join the group, or use !groupjoin {}".format(group_id),
+                          color=0xffc84b)
+            embed.add_field(name='Start Date:', value=start_date, inline=True)
+            embed.add_field(name='Max Players:', value=max_users, inline=True)
+            embed.add_field(name='Creator:', value=ctx.author, inline=True)
+            embed.add_field(name='Description:', value=" ".join(notes))
+
             announce_channel = get(ctx.message.guild.channels,
                                    id=announce_chan)
-            await announce_channel.send(cleandoc("""
-            --------------------
-            {} created a session on {} with a max player count of {}.
-            Use `!groupjoin {}` to join this session.
-            Additional notes: {}
-            --------------------""".format(
-                ctx.author,
-                start_date,
-                max_users,
-                group_id,
-                " ".join(notes))))
+            await announce_channel.send(embed=embed)
 
     @commands.command()
     async def grouplist(self, ctx, *args):
@@ -176,15 +176,20 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
                 role = get(ctx.guild.roles, name="group-{}".format(group_id))
                 await ctx.author.add_roles(role)
 
-                await ctx.send("{} joined group with ID of {}!".format(
-                    ctx.author,
-                    group_id))
+                await ctx.send(embed=discord.Embed(
+                    title="Joined Group!",
+                    description="{} joined group with ID of {}".format(ctx.author, group_id),
+                    color=0x79ff4b))
             else:
-                await ctx.send("{} is already a member of this group!".format(
-                    str(ctx.author)))
+                await ctx.send(embed=discord.Embed(
+                    title="Error!",
+                    description=""" {} is already a member of this group! """.format(str(ctx.author)),
+                    color=0xe00038))
         else:
-            await ctx.send("Group is already full! ({})".format(
-                ret_groupinfo[0][1]))
+            await ctx.send(embed=discord.Embed(
+                title="Error!",
+                description=""" Group is already full! ({}) """.format(ret_groupinfo[0][1]),
+                color=0xe00038))
 
     @commands.command()
     async def groupclose(self, ctx):
