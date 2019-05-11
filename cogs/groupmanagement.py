@@ -48,15 +48,13 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
         Created group with ID of {} starting on {}
         """.format(group_id, start_date)))
 
-        new_role = "group-{}".format(str(group_id))
-
-        await ctx.guild.create_role(
-            name=new_role,
+        group_role = await ctx.guild.create_role(
+            name="group-{}".format(str(group_id)),
             mentionable=True,
             reason="Automated role creation, requested by {}"
             .format(str(ctx.author)))
 
-        group_role = get(ctx.message.guild.roles, name=new_role)
+        new_role = "group-{}".format(str(group_id))
 
         await ctx.author.add_roles(group_role)
 
@@ -87,7 +85,6 @@ class GroupManagement(commands.Cog, name="Group Management Commands"):
             announce_channel = get(ctx.message.guild.channels,
                                    id=announce_chan)
             await announce_channel.send(cleandoc("""
-            @here
             --------------------
             {} created a session on {} with a max player count of {}.
             Use `!groupjoin {}` to join this session.

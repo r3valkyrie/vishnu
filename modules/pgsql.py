@@ -122,9 +122,10 @@ class pgSQLManagement:
         # Convert date string to datetime
         date = datetime.datetime.strptime(start_date, '%Y-%m-%d')
 
-        await self.conn.execute("""
+        group_id = await self.conn.fetch("""
         INSERT INTO "{0}_groups"(creator, start_date, max_users, notes)
-        VALUES ($1::varchar, $2::date, $3::varchar, $4::varchar);
+        VALUES ($1::varchar, $2::date, $3::varchar, $4::varchar)
+        returning id;
         """.format(guild_id),
                                 creator,
                                 date, "0/{}".format(max_users),
@@ -132,18 +133,7 @@ class pgSQLManagement:
 
         await self.tr.commit()
 
-        group_id = None
-
-        while group_id is None:
-            try:
-                group_id = await self.conn.fetch("""
-                SELECT max(id)
-                FROM "{0}_groups";
-                """.format(guild_id))
-
-            except:
-                pass
-
+        print(group_id)
         return group_id[0][0]
 
     async def retrieve_group_list(self,
